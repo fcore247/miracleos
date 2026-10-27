@@ -22,7 +22,7 @@ class UpdatesTest(unittest.TestCase):
         self.pub = self.root / 'public.pem'
         subprocess.run(['openssl', 'genpkey', '-algorithm', 'ED25519', '-out', str(self.key)], check=True, capture_output=True)
         subprocess.run(['openssl', 'pkey', '-in', str(self.key), '-pubout', '-out', str(self.pub)], check=True, capture_output=True)
-        for name, value in [('BASE', self.root / 'opt'), ('STATE', self.root / 'state'), ('KEY', self.pub)]:
+        for name, value in [('BASE', self.root / 'opt'), ('STATE', self.root / 'state'), ('KEY', self.pub), ('IMAGE', self.root / 'image.json')]:
             p = patch.object(u, name, value)
             p.start()
             self.addCleanup(p.stop)
@@ -121,5 +121,19 @@ class UpdatesTest(unittest.TestCase):
             self.fail('Old bundle must not be downloaded')
         with patch.object(u, 'fetch', download): u.check(apply=True)
         self.assertEqual(u.installed()['sequence'], 10)
+
+    def test_fresh_iso_never_downloads_an_older_update(self):
+        u.atomic_json(u.IMAGE, {'version': 'ISO 20261027', 'sequence': 2026102701})
+        self.assertFalse((u.BASE / 'current').exists())
+        raw = json.dumps(self.manifest).encode()
+        sig = self.signature(raw)
+        release = [{'tag_name': 'test-1', 'assets': [{'name': n} for n in ['miracleos-update.json', 'miracleos-update.json.sig', 'miracleos-update-amd64.tar.gz']]}]
+        def download(url, limit, output=None):
+            if '/releases?' in url: return json.dumps(release).encode()
+            if url.endswith('.json.sig'): return sig
+            if url.endswith('.json'): return raw
+            self.fail('Older bundle must not replace a fresh ISO')
+        with patch.object(u, 'fetch', download): u.check(apply=True)
+        self.assertEqual(u.installed()['sequence'], 2026102701)
 
 if __name__ == '__main__': unittest.main()

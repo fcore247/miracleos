@@ -25,7 +25,7 @@ jobs:
       run: sudo apt update
 
     - name: Install dependencies
-      run: sudo apt install -y libgtk-3-dev libcairo2-dev libglib2.0-dev libgtk-layer-shell0 libgtk-layer-shell-dev libvte-2.91-dev xvfb
+      run: sudo apt install -y libgtk-3-dev libcairo2-dev libglib2.0-dev libgtk-layer-shell0 libgtk-layer-shell-dev libvte-2.91-dev libwebkit2gtk-4.1-dev xvfb
 
     - name: Build
       run: go build -v -o miracleos-desktop ./cmd/desktop

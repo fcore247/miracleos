@@ -23,6 +23,7 @@ REPO = 'buschmeierflorian54-lgtm/miracleos'
 BASE = pathlib.Path('/opt/miracleos/updates')
 STATE = pathlib.Path('/var/lib/miracleos/updates')
 KEY = pathlib.Path('/etc/miracleos/update-public.pem')
+IMAGE = pathlib.Path('/etc/miracleos-image.json')
 MAX_BUNDLE = 300 * 1024 * 1024
 COMPONENTS = {
     'miracleos-desktop': '/opt/miracleos/miracleos-desktop',
@@ -51,7 +52,9 @@ def link(target, path):
     os.replace(tmp, path)
 
 def installed():
-    return read_json(BASE / 'current' / 'release.json', {'sequence': 0, 'version': 'Bisherige Installation'})
+    image = read_json(IMAGE)
+    baseline = {'sequence': image.get('sequence', 0), 'version': image.get('version', 'Bisherige Installation')}
+    return read_json(BASE / 'current' / 'release.json', baseline)
 
 def status(**values):
     data = read_json(STATE / 'status.json')
@@ -144,7 +147,7 @@ def bootstrap():
                 for name, source in COMPONENTS.items():
                     shutil.copy2(source, stage / name)
                 shutil.copytree('/opt/miracleos/runtime', stage / 'runtime')
-                atomic_json(stage / 'release.json', {'sequence': 0, 'version': 'Bisherige Installation'})
+                atomic_json(stage / 'release.json', installed())
                 stage.chmod(0o755)
                 os.replace(stage, baseline)
             finally:

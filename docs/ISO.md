@@ -10,6 +10,11 @@ Build on a disposable Debian 13 machine:
 sudo bash scripts/iso/build.sh /home/builder/miracleos-live
 ```
 
+For a dated release, pass its version and monotonically increasing update sequence,
+for example `sudo env MIRACLEOS_VERSION=0.1.0-test.20261027 MIRACLEOS_SEQUENCE=2026102701 MIRACLEOS_SWAY_BUILD_DIR=/mnt/build/sway-source bash scripts/iso/build.sh /mnt/build/live`.
+Use a fresh compositor source directory when its patches have changed. The image
+records its sequence so automatic updates cannot replace it with an older release.
+
 The build runs Go tests and the installer's Python safety tests, then writes
 `live-image-amd64.hybrid.iso` and `SHA256SUMS`. The hybrid image supports DVD and USB
 boot on x86-64 machines, with BIOS and UEFI bootloaders. Secure Boot is not configured

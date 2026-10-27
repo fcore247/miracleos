@@ -2,16 +2,16 @@
 
 ## Releases und Downloads
 
-**Aktuelle Testversion: 20.10.2026 · amd64 · ca. 1,7 GB**
+**Aktuelle Testversion: 27.10.2026 · amd64**
 
 | Download | Link |
 | --- | --- |
-| Installations-ISO | [ISO herunterladen](https://github.com/buschmeierflorian54-lgtm/miracleos/releases/download/v0.1.0-test.20261020/MiracleOS-0.1-test.20261020-amd64.iso) |
-| SHA-256-Prüfsumme | [Prüfsumme herunterladen](https://github.com/buschmeierflorian54-lgtm/miracleos/releases/download/v0.1.0-test.20261020/MiracleOS-0.1-test.20261020-SHA256SUMS.txt) |
-| Änderungen und Teststand | [Release vom 20.10.2026](https://github.com/buschmeierflorian54-lgtm/miracleos/releases/tag/v0.1.0-test.20261020) |
-| Frühere Versionen | [Alle Releases](https://github.com/buschmeierflorian54-lgtm/miracleos/releases) |
+| Installations-ISO | [ISO herunterladen](https://github.com/fcore247/miracleos/releases/download/v0.1.0-test.20261027/MiracleOS-0.1-test.20261027-amd64.iso) |
+| SHA-256-Prüfsumme | [Prüfsumme herunterladen](https://github.com/fcore247/miracleos/releases/download/v0.1.0-test.20261027/MiracleOS-0.1-test.20261027-SHA256SUMS.txt) |
+| Änderungen und Teststand | [Release vom 27.10.2026](https://github.com/fcore247/miracleos/releases/tag/v0.1.0-test.20261027) |
+| Frühere Versionen | [Alle Releases](https://github.com/fcore247/miracleos/releases) |
 
-Das Repository und die Downloads sind öffentlich. Automatische Systemkomponenten-Updates werden separat als signierte Release-Pakete veröffentlicht; siehe [Updates einrichten](docs/UPDATES.md). Die neue ISO vom 20.10.2026 enthält die Update-Funktion bereits. Ältere Installationen können das Updater-Paket nachrüsten.
+Das Repository und die Downloads sind öffentlich. Automatische Systemkomponenten-Updates werden separat als signierte Release-Pakete veröffentlicht; siehe [Updates einrichten](docs/UPDATES.md). Die neue ISO vom 27.10.2026 enthält die Update-Funktion bereits. Ältere Installationen können das Updater-Paket nachrüsten.
 
 **Direkt zu:** [Installation](#installation) · [Funktionen](#funktionen) · [Entwicklung](#entwickeln-und-testen) · [Projektstruktur](#projektstruktur)
 
@@ -30,6 +30,13 @@ Die ISO und ihre Prüfsumme findest du oben unter **Releases und Downloads**.
 5. Namen, Passwort und optional WLAN sowie Spotify einrichten.
 
 BIOS und UEFI sind im Image vorgesehen. Secure Boot ist nicht eingerichtet. Der vollständige UEFI- und Reset-Test ist noch offen; siehe [Teststand](docs/TESTING.md).
+
+## Neu in dieser Testversion
+
+- Neue HTML-Einstellungen mit den bisherigen Einstellmöglichkeiten.
+- Grafischer Debian-Paketinstaller mit Paketprüfung und Installationsvorschau.
+- Windows-Apps per Doppelklick über Wine starten und über das Startmenü deinstallieren.
+- Passende neue Icons für Installation und Deinstallation; Startmenü-Fokus beim Deinstallieren korrigiert.
 
 ## Funktionen
 

@@ -9,6 +9,7 @@ if [ ! -f "$luna" ]; then echo 'Pass the tested Luna Linux binary as the second 
 luna=$(realpath "$luna")
 sway_root=${MIRACLEOS_SWAY_BUILD_DIR:-/home/builder/sway-source}
 version=${MIRACLEOS_VERSION:-0.1-test}
+sequence=${MIRACLEOS_SEQUENCE:-0}
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y live-build debootstrap xorriso squashfs-tools mtools dosfstools \
@@ -21,7 +22,7 @@ mkdir -p "$sway_root"
 cd "$sway_root"
 if [ ! -f sway-1.10.1/build-miracleos/sway/sway ]; then
   apt-get source sway=1.10.1-2
-  sh "$repo/compositor/build.sh" /home/builder/sway-source/sway-1.10.1
+  sh "$repo/compositor/build.sh" "$sway_root/sway-1.10.1"
 fi
 cd "$repo"
 python3 -m unittest discover -s scripts/iso -p 'test_*.py'
@@ -128,7 +129,9 @@ install -m 755 "$repo/scripts/iso/configure-updates.sh" config/includes.chroot/u
 install -m 755 "$repo/scripts/iso/configure-image.sh" config/hooks/live/0900-miracleos.hook.chroot
 cp "$repo/cmd/desktop/images/wallpapers/"*.png config/includes.chroot/usr/share/backgrounds/miracleos/
 image_id=$(cat /tmp/miracleos-desktop /tmp/miracleos-app-tabs "$luna" "$repo/scripts/iso/system-helper.py" "$repo/scripts/iso/update-manager.py" "$repo/scripts/iso/update-public.pem" "$repo/scripts/iso/configure-image.sh" "$repo/scripts/iso/grub.cfg" "$sway_root/sway-1.10.1/build-miracleos/sway/sway" | sha256sum | cut -d' ' -f1)
-printf '{"name":"MiracleOS","version":"%s","architecture":"amd64","image_id":"%s"}\n' "$version" "$image_id" > config/includes.chroot/etc/miracleos-image.json
+printf '{"name":"MiracleOS","version":"%s","sequence":%s,"architecture":"amd64","image_id":"%s"}\n' "$version" "$sequence" "$image_id" > config/includes.chroot/etc/miracleos-image.json
 cp config/includes.chroot/etc/miracleos-image.json config/includes.binary/
+# Larger XZ blocks and the x86 filter keep the Wine-enabled ISO compact.
+export MKSQUASHFS_OPTIONS=${MKSQUASHFS_OPTIONS:--b 1M -Xbcj x86}
 lb build
 sha256sum live-image-amd64.hybrid.iso > SHA256SUMS

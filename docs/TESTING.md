@@ -1,5 +1,11 @@
 # Teststand
 
+## Testversion vom 27. Oktober 2026
+
+Der aktuelle Desktop mit HTML-Einstellungen, Debian-Paketinstaller und Wine-Integration bestand die Go-Tests auf dem separaten Debian-13-Builder. Die 14 Python-Tests für Installation und Updates sowie der isolierte Spotify-D-Bus-Test bestanden ebenfalls. Der Compositor wurde aus frischen Sway-Quellen neu gebaut.
+
+Die Tests vom 26. Oktober zur Wine-Installation und -Deinstallation sind in [Windows-Apps](WINDOWS-APPS.md) dokumentiert. Einzelheiten zum Boot-Test des veröffentlichten ISO-Abbilds stehen zusätzlich in dessen Release-Beschreibung. Ein Boot-Test ersetzt keinen vollständigen Installations- oder Reset-Test.
+
 Stand: 9. Oktober 2026. Experimenteller Teststand, keine allgemeine Produktionsfreigabe.
 
 ## Bereits geprüft
