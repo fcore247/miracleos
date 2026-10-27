@@ -3,7 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"os"
+	"io"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -12,17 +12,10 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 )
 
-func debField(path, field string) string {
-	data, err := exec.Command("dpkg-deb", "--field", path, field).Output()
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(data))
-}
-
 func showPackageInstaller(path string) {
 	win, _ := gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
 	win.SetTitle("Paketinstaller — MiracleOS")
+	setUtilityWindowIcon(win, "package-installer")
 	win.SetDefaultSize(660, 590)
 	win.Connect("destroy", gtk.MainQuit)
 	busy, alive := false, true
@@ -40,7 +33,7 @@ func showPackageInstaller(path string) {
 	root.PackStart(glassWindowHeader(win, "Paketinstaller — MiracleOS", canClose), false, false, 0)
 	content, _ := gtk.BoxNew(gtk.ORIENTATION_VERTICAL, 16)
 	menuClass(content, "installer-content")
-	icon := menuIcon("store", 92)
+	icon := settingIcon("miracleos-package-installer", 64)
 	icon.SetHAlign(gtk.ALIGN_CENTER)
 	content.PackStart(icon, false, false, 0)
 	heading := menuLabel("Paket öffnen", "installer-title")
@@ -60,6 +53,14 @@ func showPackageInstaller(path string) {
 	description.SetMaxWidthChars(66)
 	card.PackStart(description, false, false, 0)
 	content.PackStart(card, false, false, 0)
+	plan, _ := gtk.ExpanderNew("Installationsdetails und Abhängigkeiten")
+	planText := settingsText("Noch kein Paket ausgewählt.")
+	planScroll, _ := gtk.ScrolledWindowNew(nil, nil)
+	planScroll.SetPolicy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+	planScroll.SetMinContentHeight(140)
+	planScroll.Add(planText)
+	plan.Add(planScroll)
+	content.PackStart(plan, false, false, 0)
 	status = menuLabel("Bereit", "installer-status")
 	status.SetLineWrap(true)
 	status.SetMaxWidthChars(65)
@@ -73,48 +74,100 @@ func showPackageInstaller(path string) {
 	menuClass(open, "installer-secondary")
 	menuClass(install, "installer-primary")
 	install.SetSensitive(false)
+	launch, _ := gtk.ButtonNewWithLabel("App öffnen")
+	menuClass(launch, "installer-secondary")
+	launch.SetNoShowAll(true)
+	buttons.PackStart(launch, false, false, 0)
 	buttons.PackStart(open, false, false, 0)
 	buttons.PackEnd(install, false, false, 0)
-	content.PackEnd(buttons, false, false, 0)
-	root.PackStart(content, true, true, 0)
+	buttons.SetMarginStart(30)
+	buttons.SetMarginEnd(30)
+	buttons.SetMarginTop(12)
+	buttons.SetMarginBottom(20)
+	scroll, _ := gtk.ScrolledWindowNew(nil, nil)
+	scroll.SetPolicy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+	scroll.Add(content)
+	root.PackStart(scroll, true, true, 0)
+	root.PackEnd(buttons, false, false, 0)
 	win.Add(root)
 	selected := ""
 	packageName := ""
 	win.Connect("destroy", func() { alive = false })
 	load := func(file string) {
-		absolute, err := filepath.Abs(file)
-		if err != nil {
-			status.SetText("Die Datei konnte nicht geöffnet werden.")
-			return
-		}
-		info, err := os.Stat(absolute)
-		if err != nil || info.IsDir() || !strings.EqualFold(filepath.Ext(absolute), ".deb") {
-			status.SetText("Bitte eine vorhandene Debian-Paketdatei (.deb) auswählen.")
-			return
-		}
-		name := debField(absolute, "Package")
-		if name == "" {
-			status.SetText("Diese Datei ist kein gültiges Debian-Paket.")
-			install.SetSensitive(false)
-			selected = ""
-			return
-		}
-		selected, packageName = absolute, name
-		heading.SetText(name)
-		version, arch := debField(absolute, "Version"), debField(absolute, "Architecture")
-		metadata.SetText(fmt.Sprintf("Version %s    ·    %s    ·    %.1f MB", version, arch, float64(info.Size())/(1024*1024)))
-		text := debField(absolute, "Description")
-		lines := strings.Split(text, "\n")
-		if len(lines) > 7 {
-			lines = lines[:7]
-		}
-		description.SetText(strings.Join(lines, "\n"))
-		subtitle.SetText(filepath.Base(absolute))
-		status.SetText("Bereit zur Installation. Benötigte Pakete werden mitinstalliert.")
-		progress.SetFraction(0)
-		install.SetSensitive(true)
-		install.SetLabel("Installieren")
+		selected, packageName = "", ""
+		install.SetSensitive(false)
+		open.SetSensitive(false)
+		launch.Hide()
+		heading.SetText("Paket wird geprüft …")
+		description.SetText("")
+		metadata.SetText("")
+		planText.SetText("Abhängigkeiten werden geprüft …")
+		status.SetText("Paketinformationen werden geladen. Es wird noch nichts installiert.")
+		go func() {
+			pkg, err := inspectDebPackage(file)
+			preview := ""
+			var previewErr error
+			if err == nil {
+				preview, previewErr = previewDebInstall(pkg.Path)
+			}
+			glib.IdleAdd(func() {
+				if !alive {
+					return
+				}
+				open.SetSensitive(true)
+				if err != nil {
+					heading.SetText("Paket konnte nicht geöffnet werden")
+					status.SetText(err.Error())
+					planText.SetText("Kein installierbares Paket ausgewählt.")
+					return
+				}
+				selected, packageName = pkg.Path, pkg.Name
+				heading.SetText(pkg.Name)
+				metadata.SetText(fmt.Sprintf("Version %s    ·    %s    ·    %.1f MB", pkg.Version, pkg.Architecture, float64(pkg.Size)/(1024*1024)))
+				lines := strings.Split(pkg.Description, "\n")
+				if len(lines) > 5 {
+					lines = lines[:5]
+				}
+				description.SetText(strings.Join(lines, "\n"))
+				subtitle.SetText(filepath.Base(pkg.Path))
+				planText.SetText(preview)
+				progress.SetFraction(0)
+				install.SetLabel("Installieren")
+				message := "Bereit. Abhängigkeiten werden mitinstalliert; dein Passwort gibt die Installation frei."
+				if pkg.InstalledVersion != "" {
+					message = "Bereits installiert: " + pkg.InstalledVersion + ". Dieses Paket kann mit Passwortfreigabe erneut installiert oder aktualisiert werden."
+					install.SetLabel("Aktualisieren / erneut installieren")
+				}
+				if previewErr != nil {
+					status.SetText("Dieses Paket kann derzeit nicht installiert werden. Siehe Installationsdetails.")
+					plan.SetExpanded(true)
+					return
+				}
+				if _, e := exec.LookPath("pkexec"); e != nil {
+					status.SetText("Die Passwortfreigabe fehlt. Bitte das Systempaket pkexec installieren.")
+					return
+				}
+				status.SetText(message)
+				install.SetSensitive(true)
+			})
+		}()
 	}
+	launch.Connect("clicked", func() {
+		out, err := exec.Command("dpkg-query", "-L", packageName).Output()
+		if err == nil {
+			files := map[string]bool{}
+			for _, file := range strings.Split(string(out), "\n") {
+				files[file] = true
+			}
+			for _, app := range installedApplications() {
+				if files[app.File] {
+					launchInstalledApp(app)
+					return
+				}
+			}
+		}
+		status.SetText("Dieses Paket hat keinen App-Starter. Installierte Apps findest du im Startmenü.")
+	})
 	open.Connect("clicked", func() {
 		showFilePicker(&filePickerOptions{Title: "Debian-Paket auswählen", Parent: win, Filters: []pickerFilter{{Name: "Debian-Pakete (*.deb)", Rules: []pickerRule{{Kind: 0, Value: "*.deb"}}}}, Done: func(paths []string) {
 			if len(paths) > 0 && alive {
@@ -139,7 +192,7 @@ func showPackageInstaller(path string) {
 			return true
 		})
 		go func() {
-			command := exec.Command("pkexec", "/usr/bin/gdebi", "--non-interactive", file)
+			command := exec.Command("pkexec", debInstallArguments(file)...)
 			pipe, err := command.StdoutPipe()
 			if err == nil {
 				command.Stderr = command.Stdout
@@ -148,6 +201,7 @@ func showPackageInstaller(path string) {
 			last := ""
 			if err == nil {
 				scanner := bufio.NewScanner(pipe)
+				scanner.Buffer(make([]byte, 65536), 1024*1024)
 				for scanner.Scan() {
 					line := strings.TrimSpace(scanner.Text())
 					if line == "" {
@@ -161,11 +215,21 @@ func showPackageInstaller(path string) {
 						}
 					})
 				}
+				readErr := scanner.Err()
+				if readErr != nil {
+					_, _ = io.Copy(io.Discard, pipe)
+				}
 				err = command.Wait()
+				if err == nil {
+					err = readErr
+				}
 			}
 			result := "Installation abgeschlossen."
 			if err != nil {
 				result = "Installation abgebrochen oder fehlgeschlagen."
+				if exit, ok := err.(*exec.ExitError); ok && exit.ExitCode() == 126 {
+					result = "Installation abgebrochen. Es wurde keine Freigabe erteilt."
+				}
 				if last != "" {
 					result += "\n" + last
 				}
@@ -173,6 +237,7 @@ func showPackageInstaller(path string) {
 				installed, checkErr := exec.Command("dpkg-query", "-W", "-f=${Status}", name).Output()
 				if checkErr != nil || !strings.Contains(string(installed), "install ok installed") {
 					result = "Das Paket wurde noch nicht vollständig eingerichtet."
+					err = fmt.Errorf("Paket nicht vollständig eingerichtet")
 				}
 			}
 			glib.IdleAdd(func() {
@@ -186,6 +251,7 @@ func showPackageInstaller(path string) {
 				install.SetSensitive(true)
 				if err == nil {
 					install.SetLabel("Erneut installieren")
+					launch.Show()
 				} else {
 					install.SetLabel("Erneut versuchen")
 					progress.SetFraction(0)

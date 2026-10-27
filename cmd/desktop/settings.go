@@ -38,7 +38,10 @@ type settingsUI struct {
 
 func launchSettings() {
 	hideStartMenu()
-	_ = exec.Command("/home/test/desktop/miracleos-desktop", "--settings").Start()
+	exe, err := os.Executable()
+	if err == nil {
+		_ = exec.Command(exe, "--settings").Start()
+	}
 }
 
 func settingsButton(text string, action func()) *gtk.Button {
@@ -61,6 +64,17 @@ func settingsText(text string) *gtk.Label {
 	return l
 }
 func settingIcon(name string, size int) *gtk.Image {
+	if name == "miracleos-uninstall" || name == "miracleos-package-installer" {
+		id := "uninstall"
+		if name == "miracleos-package-installer" { id = "package-installer" }
+		if data, err := settingsIconFiles.ReadFile("images/settings-icons/" + id + ".png"); err == nil {
+			if icon, err := gdk.PixbufNewFromBytesOnly(data); err == nil {
+				image, _ := gtk.ImageNewFromPixbuf(scalePixbuf(icon, size, size))
+				return image
+			}
+		}
+		name = "edit-delete"
+	}
 	ids := map[string]string{"preferences-system": "settings", "computer": "system", "preferences-desktop-peripherals": "devices", "network-workgroup": "network", "applications-other": "apps", "system-users": "accounts", "preferences-desktop-theme": "personalization", "preferences-desktop-locale": "time", "preferences-desktop-accessibility": "accessibility", "software-update-available": "updates", "changes-prevent": "privacy"}
 	if id, ok := ids[name]; ok {
 		if data, err := settingsIconFiles.ReadFile("images/settings-icons/" + id + ".png"); err == nil {
@@ -80,7 +94,7 @@ func settingIcon(name string, size int) *gtk.Image {
 	return image
 }
 
-func showSettings() {
+func showNativeSettings() {
 	ui := &settingsUI{alive: true}
 	ui.win, _ = gtk.WindowNew(gtk.WINDOW_TOPLEVEL)
 	ui.win.SetTitle("Einstellungen — MiracleOS")

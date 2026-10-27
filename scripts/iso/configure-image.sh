@@ -7,8 +7,9 @@ mkdir -p /etc/skel/.config/miracleos /etc/systemd/user
 curl -fsSL https://download.spotify.com/debian/pubkey_5384CE82BA52C83A.asc -o /tmp/spotify-key.asc
 gpg --dearmor --yes -o /etc/apt/keyrings/spotify.gpg /tmp/spotify-key.asc
 echo 'deb [signed-by=/etc/apt/keyrings/spotify.gpg] https://repository.spotify.com stable non-free' > /etc/apt/sources.list.d/spotify.list
+dpkg --add-architecture i386
 apt-get update
-apt-get install -y spotify-client
+apt-get install -y spotify-client wine wine64 wine32:i386 fonts-wine
 install -m 644 /usr/share/spotify/spotify.desktop /usr/share/applications/spotify.desktop
 cat > /usr/local/bin/spotify <<'EOF'
 #!/bin/sh
@@ -46,9 +47,24 @@ MimeType=inode/directory;
 StartupWMClass=miracleos-files
 EOF
 mkdir -p /etc/xdg
+cat > /usr/share/applications/miracleos-installer.desktop <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Paketinstaller
+Comment=Debian-Pakete installieren
+Exec=miracleos-desktop --install %f
+Icon=package-x-generic
+Terminal=false
+Categories=System;PackageManager;
+MimeType=application/vnd.debian.binary-package;application/x-deb;
+StartupWMClass=miracleos-install
+EOF
+update-desktop-database /usr/share/applications
 cat > /etc/xdg/mimeapps.list <<'EOF'
 [Default Applications]
 inode/directory=miracleos-files.desktop;
+application/vnd.debian.binary-package=miracleos-installer.desktop;
+application/x-deb=miracleos-installer.desktop;
 EOF
 # Register the existing MiracleOS file picker for sandboxed and GTK applications.
 mkdir -p /usr/share/xdg-desktop-portal/portals /usr/share/dbus-1/services /etc/xdg/xdg-desktop-portal

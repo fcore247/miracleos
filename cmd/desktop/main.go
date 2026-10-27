@@ -106,6 +106,10 @@ func main() {
 	if err := ensureTerminalLauncher(); err != nil {
 		log.Print(err)
 	}
+	if err := ensurePackageInstallerLauncher(); err != nil {
+		log.Print(err)
+	}
+	if err := ensureWindowsLauncher(); err != nil { log.Print(err) }
 	if len(os.Args) > 1 && os.Args[1] == "--context-menu" {
 		runSharedContextMenu()
 		return
@@ -120,9 +124,13 @@ func main() {
 	if len(os.Args) > 1 && os.Args[1] == "--install" {
 		os.Args[0] = "miracleos-install"
 	}
+	if len(os.Args)>1 && os.Args[1]=="--windows" { os.Args[0]="miracleos-windows" }
 	gtk.Init(&os.Args)
 	loadCSS()
 	watchSystemTheme()
+	if len(os.Args)>1 && os.Args[1]=="--windows" {
+		path:="";if len(os.Args)>2{path=os.Args[2]};showWindowsApp(path);gtk.Main();return
+	}
  if len(os.Args)>1&&os.Args[1]=="--spotify-overlay"{showSpotifyOverlay();return}
  if len(os.Args)>1&&(os.Args[1]=="--setup"||os.Args[1]=="--setup-preview"){showSystemSetup(os.Args[1]=="--setup-preview");gtk.Main();return}
  if len(os.Args)>1&&os.Args[1]=="--install-system"{showSystemInstaller();gtk.Main();return}

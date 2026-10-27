@@ -631,6 +631,19 @@ func (fm *glassFileManager) open(path string) {
 		fm.previewImage(path)
 		return
 	}
+	if strings.EqualFold(filepath.Ext(path),".exe") || strings.EqualFold(filepath.Ext(path),".msi") {
+		binary,err:=os.Executable();if err==nil{err=exec.Command(binary,"--windows",path).Start()};if err!=nil{fm.status.SetText("Die Windows-App konnte nicht geöffnet werden.")};return
+	}
+	if strings.EqualFold(filepath.Ext(path), ".deb") {
+		binary, err := os.Executable()
+		if err == nil {
+			err = exec.Command(binary, "--install", path).Start()
+		}
+		if err != nil {
+			fm.status.SetText("Der Paketinstaller konnte nicht geöffnet werden.")
+		}
+		return
+	}
 	if err := exec.Command("xdg-open", path).Start(); err != nil {
 		fm.status.SetText("Die Datei konnte nicht geöffnet werden.")
 	}

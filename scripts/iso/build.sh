@@ -7,16 +7,18 @@ luna=${2:-/home/builder/luna-linux/build/bin/luna-browser}
 if [ "$EUID" -ne 0 ]; then echo 'Run with sudo.' >&2; exit 1; fi
 if [ ! -f "$luna" ]; then echo 'Pass the tested Luna Linux binary as the second argument.' >&2; exit 1; fi
 luna=$(realpath "$luna")
+sway_root=${MIRACLEOS_SWAY_BUILD_DIR:-/home/builder/sway-source}
+version=${MIRACLEOS_VERSION:-0.1-test}
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y live-build debootstrap xorriso squashfs-tools mtools dosfstools \
   golang-go build-essential libgtk-3-dev libgtk-layer-shell-dev libvte-2.91-dev \
-  libglib2.0-dev curl gnupg rsync xvfb
+  libglib2.0-dev libwebkit2gtk-4.1-dev curl gnupg rsync xvfb
 echo 'deb-src http://deb.debian.org/debian trixie main' > /etc/apt/sources.list.d/miracleos-source.list
 apt-get update
 apt-get build-dep -y sway
-mkdir -p /home/builder/sway-source
-cd /home/builder/sway-source
+mkdir -p "$sway_root"
+cd "$sway_root"
 if [ ! -f sway-1.10.1/build-miracleos/sway/sway ]; then
   apt-get source sway=1.10.1-2
   sh "$repo/compositor/build.sh" /home/builder/sway-source/sway-1.10.1
@@ -78,6 +80,11 @@ libwebkit2gtk-4.1-0
 libjson-glib-1.0-0
 wireplumber
 lxpolkit
+pkexec
+desktop-file-utils
+wine
+wine64
+fonts-wine
 xdg-desktop-portal
 xdg-desktop-portal-wlr
 xdg-utils
@@ -112,7 +119,7 @@ Terminal=false
 Categories=Network;WebBrowser;
 MimeType=text/html;x-scheme-handler/http;x-scheme-handler/https;
 EOF
-install -m 755 /home/builder/sway-source/sway-1.10.1/build-miracleos/sway/sway config/includes.chroot/usr/local/libexec/miracleos-sway
+install -m 755 "$sway_root/sway-1.10.1/build-miracleos/sway/sway" config/includes.chroot/usr/local/libexec/miracleos-sway
 install -m 755 "$repo"/runtime/*.py config/includes.chroot/opt/miracleos/runtime/
 install -m 755 "$repo/scripts/iso/system-helper.py" config/includes.chroot/usr/local/lib/miracleos/
 install -m 755 "$repo/scripts/iso/update-manager.py" config/includes.chroot/usr/local/lib/miracleos/
@@ -120,8 +127,8 @@ install -D -m 644 "$repo/scripts/iso/update-public.pem" config/includes.chroot/e
 install -m 755 "$repo/scripts/iso/configure-updates.sh" config/includes.chroot/usr/local/lib/miracleos/
 install -m 755 "$repo/scripts/iso/configure-image.sh" config/hooks/live/0900-miracleos.hook.chroot
 cp "$repo/cmd/desktop/images/wallpapers/"*.png config/includes.chroot/usr/share/backgrounds/miracleos/
-image_id=$(cat /tmp/miracleos-desktop /tmp/miracleos-app-tabs "$luna" "$repo/scripts/iso/system-helper.py" "$repo/scripts/iso/update-manager.py" "$repo/scripts/iso/update-public.pem" "$repo/scripts/iso/configure-image.sh" "$repo/scripts/iso/grub.cfg" /home/builder/sway-source/sway-1.10.1/build-miracleos/sway/sway | sha256sum | cut -d' ' -f1)
-printf '{"name":"MiracleOS","version":"0.1-test","architecture":"amd64","image_id":"%s"}\n' "$image_id" > config/includes.chroot/etc/miracleos-image.json
+image_id=$(cat /tmp/miracleos-desktop /tmp/miracleos-app-tabs "$luna" "$repo/scripts/iso/system-helper.py" "$repo/scripts/iso/update-manager.py" "$repo/scripts/iso/update-public.pem" "$repo/scripts/iso/configure-image.sh" "$repo/scripts/iso/grub.cfg" "$sway_root/sway-1.10.1/build-miracleos/sway/sway" | sha256sum | cut -d' ' -f1)
+printf '{"name":"MiracleOS","version":"%s","architecture":"amd64","image_id":"%s"}\n' "$version" "$image_id" > config/includes.chroot/etc/miracleos-image.json
 cp config/includes.chroot/etc/miracleos-image.json config/includes.binary/
 lb build
 sha256sum live-image-amd64.hybrid.iso > SHA256SUMS

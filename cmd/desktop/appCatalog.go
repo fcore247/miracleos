@@ -62,6 +62,7 @@ func launchInstalledApp(app installedApp) {
 	}()
 }
 func installedAppIcon(app installedApp) *gtk.Image {
+	if app.Name == "Paketinstaller" { return settingIcon("miracleos-package-installer", 24) }
  if app.Name == "Einstellungen" { return settingIcon("preferences-system",24) }
 	if app.Name == "Dateien" {
 		return menuIcon("files", 24)
@@ -69,6 +70,16 @@ func installedAppIcon(app installedApp) *gtk.Image {
 	icon := app.Icon
 	if strings.HasPrefix(icon, "file://") {
 		icon = strings.TrimPrefix(icon, "file://")
+	}
+	// These icons are embedded so installed binaries and updates do not need
+	// a source checkout beside the executable to render their taskbar icons.
+	if filepath.Base(filepath.Dir(icon)) == "settings-icons" {
+		if data, err := settingsIconFiles.ReadFile("images/settings-icons/" + filepath.Base(icon)); err == nil {
+			if pixbuf, err := gdk.PixbufNewFromBytesOnly(data); err == nil {
+				image, _ := gtk.ImageNewFromPixbuf(scalePixbuf(pixbuf, 24, 24))
+				return image
+			}
+		}
 	}
 	if filepath.IsAbs(icon) {
 		if pixbuf, err := gdk.PixbufNewFromFileAtScale(icon, 24, 24, true); err == nil {

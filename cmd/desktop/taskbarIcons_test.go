@@ -13,6 +13,10 @@ func TestTaskbarAppIcon(t *testing.T) {
 		{"miracleos-desktop", "Terminal — MiracleOS", "utilities-terminal"},
 		{"miracleos-desktop", "Dateien — MiracleOS", "files.png"},
 		{"miracleos-desktop", "Einstellungen — MiracleOS", "settings.png"},
+		{"miracleos-desktop", "Windows-App deinstallieren — MiracleOS", "uninstall.png"},
+		{"miracleos-desktop", "App deinstallieren — MiracleOS", "uninstall.png"},
+		{"miracleos-desktop", "Deinstallation — MiracleOS", "uninstall.png"},
+		{"miracleos-desktop", "Paketinstaller — MiracleOS", "package-installer.png"},
 		{"unknown", "Unknown", "application-x-executable"},
 	} {
 		if got := taskbarAppIcon(tc.id, tc.title, apps); !strings.HasSuffix(got, tc.want) {
